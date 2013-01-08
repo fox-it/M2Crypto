@@ -12,6 +12,7 @@
 %{
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
+#include <openssl/x509_vfy.h>
 %}
 
 %apply Pointer NONNULL { BIO * };
@@ -20,6 +21,8 @@
 %apply Pointer NONNULL { X509_REQ * };
 %apply Pointer NONNULL { X509_NAME * };
 %apply Pointer NONNULL { X509_NAME_ENTRY * };
+%apply Pointer NONNULL { X509_STORE * };
+%apply Pointer NONNULL { X509_STORE_CTX * };
 %apply Pointer NONNULL { EVP_PKEY * };
 
 #if OPENSSL_VERSION_NUMBER >= 0x0090800fL
@@ -37,6 +40,10 @@ extern void X509_free(X509 *);
 extern void X509_CRL_free(X509_CRL *);
 %rename(x509_crl_new) X509_CRL_new;
 extern X509_CRL * X509_CRL_new();
+%rename(x509_store_ctx_new) X509_STORE_CTX_new;
+extern X509_STORE_CTX *X509_STORE_CTX_new( void );
+%rename(x509_store_ctx_init) X509_STORE_CTX_init;
+extern int X509_STORE_CTX_init( X509_STORE_CTX *, X509_STORE *, X509 *, STACK_OF(X509) *);
 
 %rename(x509_print) X509_print;
 %threadallow X509_print;
@@ -55,6 +62,8 @@ extern EVP_PKEY *X509_get_pubkey(X509 *);
 extern int X509_set_pubkey(X509 *, EVP_PKEY *);
 %rename(x509_get_issuer_name) X509_get_issuer_name;
 extern X509_NAME *X509_get_issuer_name(X509 *);
+%rename(x509_crl_get_issuer) X509_CRL_get_issuer;
+extern X509_NAME *X509_CRL_get_issuer(X509_CRL *);
 %rename(x509_set_issuer_name) X509_set_issuer_name;
 extern int X509_set_issuer_name(X509 *, X509_NAME *);
 %rename(x509_get_subject_name) X509_get_subject_name;
@@ -108,6 +117,8 @@ extern int PEM_write_X509(FILE *, X509 *);
 
 %rename(x509_verify) X509_verify;
 extern int X509_verify(X509 *a, EVP_PKEY *r);
+%rename(x509_verify_cert) X509_verify_cert;
+extern int X509_verify_cert(X509_STORE_CTX *ctx);
 %rename(x509_get_verify_error) X509_verify_cert_error_string;
 extern const char *X509_verify_cert_error_string(long);
 
@@ -152,6 +163,18 @@ extern int X509_NAME_print_ex(BIO *, X509_NAME *, int, unsigned long);
 %rename(x509_name_print_ex_fp) X509_NAME_print_ex_fp;
 extern int X509_NAME_print_ex_fp(FILE *, X509_NAME *, int, unsigned long);
 
+/* Desire is for x509_name_hash to match up to openssl's version.
+   If the old version is desired, call it expliticlty.
+*/
+%rename(x509_name_hash) X509_NAME_hash;
+extern unsigned long X509_NAME_hash(X509_NAME *);
+
+#if OPENSSL_VERSION_NUMBER >= 0x10000000L
+%rename(x509_name_hash_old) X509_NAME_hash_old;
+extern unsigned long X509_NAME_hash_old(X509_NAME *);
+#endif
+
+/*
 #if OPENSSL_VERSION_NUMBER >= 0x10000000L
 %rename(x509_name_hash) X509_NAME_hash_old;
 extern unsigned long X509_NAME_hash_old(X509_NAME *);
@@ -159,6 +182,7 @@ extern unsigned long X509_NAME_hash_old(X509_NAME *);
 %rename(x509_name_hash) X509_NAME_hash;
 extern unsigned long X509_NAME_hash(X509_NAME *);
 #endif
+*/
 
 %rename(x509_name_get_index_by_nid) X509_NAME_get_index_by_NID;
 extern int X509_NAME_get_index_by_NID(X509_NAME *, int, int);
@@ -230,6 +254,14 @@ extern X509_STORE *X509_STORE_new(void);
 extern void X509_STORE_free(X509_STORE *);
 %rename(x509_store_add_cert) X509_STORE_add_cert;
 extern int X509_STORE_add_cert(X509_STORE *, X509 *);
+
+%rename(x509_store_add_crl) X509_STORE_add_crl;
+extern int X509_STORE_add_crl(X509_STORE*, X509_CRL* );
+%rename(x509_store_set_flags) X509_STORE_set_flags;
+extern int X509_STORE_set_flags(X509_STORE*, unsigned int );
+%rename(x509_store_ctx_set0_crls) X509_STORE_CTX_set0_crls;
+extern void X509_STORE_CTX_set0_crls(X509_STORE_CTX *ctx, STACK_OF(X509_CRL) *);
+
 
 %rename(x509_store_ctx_get_current_cert) X509_STORE_CTX_get_current_cert;
 extern X509 *X509_STORE_CTX_get_current_cert(X509_STORE_CTX *);
@@ -314,6 +346,27 @@ extern int X509_EXTENSION_set_critical(X509_EXTENSION *, int);
             XN_FLAG_SEP_COMMA_PLUS | \
             XN_FLAG_DN_REV | \
             XN_FLAG_DUMP_UNKNOWN_FIELDS);
+
+/* x509_vfy.h */
+%constant int X509_V_FLAG_CB_ISSUER_CHECK             = 0x1;
+%constant int X509_V_FLAG_USE_CHECK_TIME              = 0x2;
+%constant int X509_V_FLAG_CRL_CHECK                   = 0x4;
+%constant int X509_V_FLAG_CRL_CHECK_ALL               = 0x8;
+%constant int X509_V_FLAG_IGNORE_CRITICAL             = 0x10;
+%constant int X509_V_FLAG_X509_STRICT                 = 0x20;
+%constant int X509_V_FLAG_ALLOW_PROXY_CERTS           = 0x40;
+%constant int X509_V_FLAG_POLICY_CHECK                = 0x80;
+%constant int X509_V_FLAG_EXPLICIT_POLICY             = 0x100;
+%constant int X509_V_FLAG_INHIBIT_ANY                 = 0x200;
+%constant int X509_V_FLAG_INHIBIT_MAP                 = 0x400;
+%constant int X509_V_FLAG_NOTIFY_POLICY               = 0x800;
+
+%constant int X509_VP_FLAG_DEFAULT                    = 0x1;
+%constant int X509_VP_FLAG_OVERWRITE                  = 0x2;
+%constant int X509_VP_FLAG_RESET_FLAGS                = 0x4;
+%constant int X509_VP_FLAG_LOCKED                     = 0x8;
+%constant int X509_VP_FLAG_ONCE                       = 0x10;
+
 
 /* Cribbed from rsa.h. */
 %constant int RSA_3                           = 0x3L;
@@ -419,6 +472,21 @@ int x509_sign(X509 *x, EVP_PKEY *pkey, EVP_MD *md) {
     return X509_sign(x, pkey, md);
 }
 
+/* x509_CRL_verify() is a macro */
+int x509_crl_verify(X509_CRL *crl, EVP_PKEY *pkey){
+    return X509_CRL_verify(crl, pkey);
+}
+
+/* X509_CRL_get_lastUpdate() is a macro. */
+ASN1_UTCTIME *x509_CRL_get_lastUpdate(X509_CRL *crl) {
+    return X509_CRL_get_lastUpdate(crl);
+}
+
+/* X509_CRL_get_nextUpdate() is a macro. */
+ASN1_UTCTIME *x509_CRL_get_nextUpdate(X509_CRL *crl) {
+    return X509_CRL_get_nextUpdate(crl);
+}
+
 /* XXX The first parameter is really ASN1_TIME, does it matter? */
 ASN1_TIME *x509_gmtime_adj(ASN1_UTCTIME *s, long adj) {
     return X509_gmtime_adj(s, adj);
@@ -464,6 +532,11 @@ STACK_OF(X509) *sk_x509_new_null(void) {
     return sk_X509_new_null();
 }
 
+/* sk_X509_crl_new_null() is a macro returning "STACK_OF(X509_CRL) *". */
+STACK_OF(X509_CRL) *sk_x509_crl_new_null(void) {
+    return sk_X509_CRL_new_null();
+}
+
 /* sk_X509_free() is a macro. */
 void sk_x509_free(STACK_OF(X509) *stack) {
     sk_X509_free(stack);
@@ -477,6 +550,21 @@ int sk_x509_push(STACK_OF(X509) *stack, X509 *x509) {
 /* sk_X509_pop() is a macro. */
 X509 *sk_x509_pop(STACK_OF(X509) *stack) {
     return sk_X509_pop(stack);
+}
+
+/* sk_X509_CRL_free() is a macro. */
+void sk_x509_crl_free(STACK_OF(X509_CRL) *stack) {
+    sk_X509_CRL_free(stack);
+}
+
+/* sk_X509_CRL_push() is a macro. */
+int sk_x509_crl_push(STACK_OF(X509_CRL) *stack, X509_CRL *crl) {
+    return sk_X509_CRL_push(stack, crl);
+}
+
+/* sk_X509_CRL_pop() is a macro. */
+X509_CRL *sk_x509_crl_pop(STACK_OF(X509_CRL) *stack) {
+    return sk_X509_CRL_pop(stack);
 }
 
 int x509_store_load_locations(X509_STORE *store, const char *file) {
