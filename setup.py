@@ -51,7 +51,12 @@ class _M2CryptoBuildExt(build_ext.build_ext):
 
         opensslIncludeDir = os.path.join(self.openssl, 'include')
         opensslLibraryDir = os.path.join(self.openssl, 'lib')
-        
+
+        # opensslconf.h has moved to /usr/include/x86_64-linux-gnu/openssl/ on Ubuntu 13.10 (Saucy)
+        if platform.linux_distribution()[0] == 'Ubuntu' and platform.linux_distribution()[1] == '13.10':
+            if platform.architecture()[0] == '64bit':
+                self.include_dirs.append(os.path.join(opensslIncludeDir, 'x86_64-linux-gnu'))
+
         self.swig_opts = ['-I%s' % i for i in self.include_dirs + \
                           [opensslIncludeDir]]
         self.swig_opts.append('-includeall')
