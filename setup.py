@@ -11,7 +11,7 @@ Copyright (C) 2004-2007 OSAF. All Rights Reserved.
 Copyright 2008-2009 Heikki Toivonen. All rights reserved.
 """
 
-import os, sys
+import os, sys, platform
 try:
     from setuptools import setup
     from setuptools.command import build_ext
