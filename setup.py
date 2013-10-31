@@ -139,7 +139,7 @@ m2crypto = Extension(name = 'M2Crypto.__m2crypto',
                      )
 
 setup(name = 'M2Crypto',
-      version = '0.22',
+      version = '0.21.1',
       description = 'M2Crypto: A Python crypto and SSL toolkit',
       long_description = '''\
 M2Crypto is the most complete Python wrapper for OpenSSL featuring RSA, DSA,
