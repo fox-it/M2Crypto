@@ -62,6 +62,7 @@ class _M2CryptoBuildExt(build_ext.build_ext):
         self.swig_opts.append('-includeall')
         #self.swig_opts.append('-D__i386__') # Uncomment for early OpenSSL 0.9.7 versions, or on Fedora Core if build fails
         #self.swig_opts.append('-DOPENSSL_NO_EC') # Try uncommenting if you can't build with EC disabled
+        self.swig_opts.append('-DOPENSSL_NO_SSL2')
         
         self.include_dirs += [os.path.join(self.openssl, opensslIncludeDir),
                               os.path.join(os.getcwd(), 'SWIG')]        
